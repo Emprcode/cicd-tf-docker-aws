@@ -1,5 +1,5 @@
 resource "aws_security_group" "backend_sg" {
-  name = "smart-notes-sg"
+  name = "smart-note-sg"
 
   ingress {
     from_port   = 8000
