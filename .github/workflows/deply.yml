@@ -1,38 +1,67 @@
-name: Deploy Backend to EC2
+name: Deploy Node Backend
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Setup SSH key
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 400 ~/.ssh/ec2_key.pem
+
+      # Deploy to EC2
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/ec2_key.pem \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+
+            echo " Starting deployment..."
+
+            # Install Docker if not installed
+            if ! command -v docker &> /dev/null
+            then
+              sudo apt update -y
+              sudo apt install -y docker.io git
+              sudo systemctl start docker
+              sudo systemctl enable docker
+            fi
+
+            # Fix docker permissions
+            sudo usermod -aG docker ubuntu || true
+
+            # Go to home
+            cd /home/ubuntu
+
+            # Clone repo if not exists
             if [ ! -d "cicd-tf-docker-aws" ]; then
               git clone https://github.com/Emprcode/cicd-tf-docker-aws.git
             fi
 
             cd cicd-tf-docker-aws/backend
-
             git pull origin main
 
+            # Restart container
             docker stop smart-notes || true
             docker rm smart-notes || true
 
             docker build -t smart-notes-backend .
 
             docker run -d -p 5000:5000 \
-              --env-file .env \
               --name smart-notes \
               smart-notes-backend
+
+            echo "Deployment complete"
+
+          EOF
