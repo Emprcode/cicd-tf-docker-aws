@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            cd CICD-docker/backend
+            cd cicd-tf-docker-aws/backend
 
             git pull origin main
 
