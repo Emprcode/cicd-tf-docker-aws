@@ -39,10 +39,18 @@ jobs:
         run: terraform apply -auto-approve
 
       # Capture EC2 IP
-      - name: Get EC2 IP
-        id: tf_output
+      - name: Get EC2 IP safely
         run: |
-          EC2_IP=$(terraform output -raw ec2_public_ip)
+          set +e
+
+          EC2_IP=$(terraform output -raw ec2_public_ip 2>/dev/null | tr -d '\n')
+
+          if [ -z "$EC2_IP" ]; then
+            echo "EC2_IP is empty. Terraform output failed."
+            terraform output
+            exit 1
+          fi
+
           echo "EC2_HOST=$EC2_IP" >> $GITHUB_ENV
 
       # Setup SSH key
