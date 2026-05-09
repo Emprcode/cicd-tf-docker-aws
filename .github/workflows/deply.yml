@@ -30,10 +30,12 @@ jobs:
 
       # Terraform Init
       - name: Terraform Init
+        working-directory: infra
         run: terraform init
 
       # Terraform Apply (creates EC2)
       - name: Terraform Apply
+        working-directory: infra
         run: terraform apply -auto-approve
 
       # Capture EC2 IP
